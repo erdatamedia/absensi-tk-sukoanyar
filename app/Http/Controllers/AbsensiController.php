@@ -915,9 +915,10 @@ class AbsensiController extends Controller
 
     private function getMasukCutoff(): string
     {
-        $cutoff = (string) env('ABSENSI_CUTOFF_MASUK', '09:00');
+        $cutoff = Branding::operationalStart();
+
         if (!preg_match('/^\d{2}:\d{2}$/', $cutoff)) {
-            return '09:00';
+            return '06:30';
         }
 
         return $cutoff;

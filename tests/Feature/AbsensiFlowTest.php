@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Absensi;
+use App\Models\AppSetting;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\User;
@@ -331,6 +332,88 @@ class AbsensiFlowTest extends TestCase
             ->assertSee('Hadir')
             ->assertSee('Izin')
             ->assertSee('Alpha');
+    }
+
+    public function test_scan_masuk_marks_student_late_when_past_operational_start_setting(): void
+    {
+        Storage::fake('public');
+        Carbon::setTestNow('2026-04-23 07:00:00');
+
+        AppSetting::create([
+            'key' => 'operational_start',
+            'value' => '06:30',
+        ]);
+
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK A',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-016',
+            'nama' => 'Bima',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'L',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson('/absensi/simpan', [
+                'siswa_id' => $siswa->id,
+                'foto' => $this->sampleBase64Png(),
+                'jenis' => 'masuk',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('absensi', [
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-23',
+            'terlambat' => true,
+        ]);
+    }
+
+    public function test_scan_masuk_is_not_late_when_before_operational_start_setting(): void
+    {
+        Storage::fake('public');
+        Carbon::setTestNow('2026-04-23 06:20:00');
+
+        AppSetting::create([
+            'key' => 'operational_start',
+            'value' => '06:30',
+        ]);
+
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK B',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-017',
+            'nama' => 'Nisa',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson('/absensi/simpan', [
+                'siswa_id' => $siswa->id,
+                'foto' => $this->sampleBase64Png(),
+                'jenis' => 'masuk',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('absensi', [
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-23',
+            'terlambat' => false,
+        ]);
     }
 
     public function test_deleting_absensi_also_deletes_saved_dataset_files(): void
