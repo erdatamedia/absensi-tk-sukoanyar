@@ -385,12 +385,28 @@
                     }
                 }
 
+                async function waitForScannerAsset(timeoutMs = 4000) {
+                    const startedAt = Date.now();
+
+                    while (Date.now() - startedAt < timeoutMs) {
+                        if (typeof window.Html5Qrcode === "function") {
+                            return true;
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    return typeof window.Html5Qrcode === "function";
+                }
+
                 async function startQrScanner() {
                     if (scannerRunning || scanned) {
                         return;
                     }
 
-                    if (typeof window.Html5Qrcode !== "function") {
+                    const scannerAssetReady = await waitForScannerAsset();
+
+                    if (!scannerAssetReady) {
                         statusText.innerText = "Scanner QR belum siap dimuat.";
                         setStatusBadge("Scanner gagal dimuat", "error");
                         setFeedback("Asset scanner lokal tidak berhasil dimuat. Cek build frontend Vite.", "error");
@@ -450,18 +466,24 @@
                     }
                 }
 
-                startQrScanner();
-
-                btnMasuk.addEventListener("click", () => saveAbsensi("masuk"));
-                btnPulang.addEventListener("click", () => saveAbsensi("pulang"));
-                btnReset.addEventListener("click", () => resetScanState("Arahkan QR siswa ke scanner."));
-                btnStartScanner.addEventListener("click", () => startQrScanner());
-                btnRetryScanner.addEventListener("click", async () => {
-                    await stopQrScanner();
-                    document.getElementById("reader").innerHTML = "";
-                    scanner = new window.Html5Qrcode("reader");
-                    scannerPaused = false;
+                document.addEventListener("DOMContentLoaded", () => {
                     startQrScanner();
+
+                    btnMasuk.addEventListener("click", () => saveAbsensi("masuk"));
+                    btnPulang.addEventListener("click", () => saveAbsensi("pulang"));
+                    btnReset.addEventListener("click", () => resetScanState("Arahkan QR siswa ke scanner."));
+                    btnStartScanner.addEventListener("click", () => startQrScanner());
+                    btnRetryScanner.addEventListener("click", async () => {
+                        await stopQrScanner();
+                        document.getElementById("reader").innerHTML = "";
+
+                        if (typeof window.Html5Qrcode === "function") {
+                            scanner = new window.Html5Qrcode("reader");
+                            scannerPaused = false;
+                        }
+
+                        startQrScanner();
+                    });
                 });
             </script>
         </div>
