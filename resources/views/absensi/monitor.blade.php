@@ -1,13 +1,20 @@
 <x-app-layout>
+    @php
+        $operasionalMulai = \App\Support\Branding::operationalStart();
+        $operasionalSelesai = \App\Support\Branding::operationalEnd();
+        $jamSekarang = now()->format('H:i');
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Absensi</p>
                 <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Monitor Absensi</h2>
-                <p class="mt-1 text-sm text-slate-500">Pantau perubahan absensi hari ini secara realtime dari satu tampilan.</p>
+                <p class="mt-1 text-sm text-slate-500">Pantau scan masuk, scan pulang, dan status alpha hari ini secara realtime.</p>
             </div>
             <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Tanggal aktif: <span class="ml-2 font-semibold text-slate-900">{{ $today }}</span>
+                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
             </div>
         </div>
     </x-slot>
@@ -18,10 +25,10 @@
                 <div class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] xl:items-center">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">Realtime Monitor</p>
-                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Lihat pergerakan absensi masuk, pulang, dan alpha sepanjang hari.</h1>
+                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Lihat pergerakan absensi dari titik scan sampai rekap harian.</h1>
                         <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                            Halaman ini mengambil pembaruan berkala dari server untuk membantu admin memantau aktivitas absensi terbaru
-                            tanpa perlu me-refresh halaman secara manual.
+                            Halaman ini membantu operator memastikan proses absensi berjalan lancar saat siswa datang bergantian
+                            ke laptop kiosk untuk scan QR dan selfie.
                         </p>
                     </div>
 
@@ -38,12 +45,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <section class="flex flex-wrap gap-3 text-sm text-slate-600">
-                <a href="/absensi" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Scan Absensi</a>
-                <a href="/absensi/riwayat" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Riwayat Absensi</a>
-                <a href="/absensi/manual" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Input Manual</a>
             </section>
 
             <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Siswa;
 use App\Models\Absensi;
 use App\Models\Kelas;
+use App\Support\ActivityLogger;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -88,7 +90,7 @@ class AbsensiController extends Controller
                 ]))->with('error', 'Absensi masuk untuk siswa ini pada tanggal tersebut sudah ada.');
             }
 
-            Absensi::create([
+            $createdAbsensi = Absensi::create([
                 'siswa_id' => $siswaId,
                 'tanggal' => $tanggal,
                 'jam_masuk' => $jam,
@@ -97,6 +99,18 @@ class AbsensiController extends Controller
                 'sumber' => 'manual',
                 'terlambat' => $isTerlambat,
             ]);
+
+            ActivityLogger::log(
+                'absensi.manual_masuk',
+                'Absensi masuk manual disimpan.',
+                $createdAbsensi,
+                [
+                    'siswa_id' => $siswaId,
+                    'tanggal' => $tanggal,
+                    'jam' => $jam,
+                    'status' => $status,
+                ]
+            );
 
             return redirect('/absensi/manual?' . http_build_query([
                 'tanggal' => $tanggal,
@@ -122,6 +136,17 @@ class AbsensiController extends Controller
             'jam_pulang' => $jam,
             'keterangan' => $keterangan ?? $absensi->keterangan,
         ]);
+
+        ActivityLogger::log(
+            'absensi.manual_pulang',
+            'Absensi pulang manual disimpan.',
+            $absensi,
+            [
+                'siswa_id' => $siswaId,
+                'tanggal' => $tanggal,
+                'jam' => $jam,
+            ]
+        );
 
         return redirect('/absensi/manual?' . http_build_query([
             'tanggal' => $tanggal,
@@ -391,6 +416,15 @@ class AbsensiController extends Controller
             'status' => $validated['status'],
         ]);
 
+        ActivityLogger::log(
+            'absensi.update_status',
+            'Status absensi diperbarui.',
+            $absensi,
+            [
+                'status' => $validated['status'],
+            ]
+        );
+
         return redirect('/absensi/riwayat?' . http_build_query([
             'tanggal' => $validated['tanggal'] ?? now()->toDateString(),
             'kelas_id' => $validated['kelas_id'] ?? null,
@@ -417,10 +451,32 @@ class AbsensiController extends Controller
 
         $tanggal = $validated['tanggal'];
         $kelasId = $validated['kelas_id'] ?? null;
+        $q = trim((string) ($validated['q'] ?? ''));
+        $statusFilter = $validated['status_filter'] ?? null;
+        $sumberFilter = $validated['sumber_filter'] ?? null;
+        $terlambatFilter = $validated['terlambat_filter'] ?? null;
+
+        if ($this->markAlphaWouldBeExcludedByFilters($statusFilter, $sumberFilter, $terlambatFilter)) {
+            return redirect('/absensi/riwayat?' . http_build_query([
+                'tanggal' => $validated['tanggal'],
+                'kelas_id' => $validated['kelas_id'] ?? null,
+                'q' => $validated['q'] ?? null,
+                'status_filter' => $statusFilter,
+                'sumber_filter' => $sumberFilter,
+                'terlambat_filter' => $terlambatFilter,
+                'per_page' => $validated['per_page'] ?? null,
+            ]))->with('success', 'Tidak ada data alpha otomatis yang cocok dengan filter aktif.');
+        }
 
         $siswaQuery = Siswa::query()
             ->when($kelasId, function ($query, $kelasId) {
                 $query->where('kelas_id', $kelasId);
+            })
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('nama', 'like', '%' . $q . '%')
+                        ->orWhere('nis', 'like', '%' . $q . '%');
+                });
             });
 
         $sudahAdaAbsensiIds = Absensi::whereDate('tanggal', $tanggal)
@@ -438,13 +494,24 @@ class AbsensiController extends Controller
         $totalDitandai = 0;
 
         foreach ($siswaBelumAbsenIds as $siswaId) {
-            Absensi::create([
+            $alpha = Absensi::create([
                 'siswa_id' => $siswaId,
                 'tanggal' => $tanggal,
                 'status' => 'alpha',
                 'sumber' => 'auto_alpha',
                 'terlambat' => false,
             ]);
+
+            ActivityLogger::log(
+                'absensi.auto_alpha_mark',
+                'Siswa ditandai alpha otomatis.',
+                $alpha,
+                [
+                    'siswa_id' => $siswaId,
+                    'tanggal' => $tanggal,
+                ]
+            );
+
             $totalDitandai++;
         }
 
@@ -471,23 +538,36 @@ class AbsensiController extends Controller
             'per_page' => ['nullable'],
         ]);
 
-        $tanggal = $validated['tanggal'];
-        $kelasId = $validated['kelas_id'] ?? null;
-
-        $query = Absensi::whereDate('tanggal', $tanggal)
+        $query = $this->buildRiwayatQuery(
+            $validated['tanggal'],
+            $validated['kelas_id'] ?? null,
+            trim((string) ($validated['q'] ?? '')),
+            $validated['status_filter'] ?? null,
+            $validated['sumber_filter'] ?? null,
+            $validated['terlambat_filter'] ?? null
+        )
             ->where('status', 'alpha')
             ->whereNull('jam_masuk')
             ->whereNull('jam_pulang')
             ->whereNull('foto_masuk')
-            ->whereNull('foto_pulang')
-            ->when($kelasId, function ($query, $kelasId) {
-                $query->whereHas('siswa', function ($siswaQuery) use ($kelasId) {
-                    $siswaQuery->where('kelas_id', $kelasId);
-                });
-            });
+            ->whereNull('foto_pulang');
 
-        $totalDibatalkan = $query->count();
+        $items = (clone $query)->get();
+        $totalDibatalkan = $items->count();
         $query->delete();
+
+        foreach ($items as $item) {
+            ActivityLogger::log(
+                'absensi.auto_alpha_unmark',
+                'Alpha otomatis dibatalkan.',
+                null,
+                [
+                    'absensi_id' => $item->id,
+                    'siswa_id' => $item->siswa_id,
+                    'tanggal' => $item->tanggal,
+                ]
+            );
+        }
 
         return redirect('/absensi/riwayat?' . http_build_query([
             'tanggal' => $validated['tanggal'],
@@ -515,9 +595,21 @@ class AbsensiController extends Controller
 
         $fotoMasuk = $absensi->foto_masuk;
         $fotoPulang = $absensi->foto_pulang;
+        $properties = [
+            'absensi_id' => $absensi->id,
+            'siswa_id' => $absensi->siswa_id,
+            'tanggal' => $absensi->tanggal,
+        ];
         $absensi->delete();
         $this->deleteDatasetFile($fotoMasuk);
         $this->deleteDatasetFile($fotoPulang);
+
+        ActivityLogger::log(
+            'absensi.destroy',
+            'Data absensi dihapus.',
+            null,
+            $properties
+        );
 
         return redirect('/absensi/riwayat?' . http_build_query([
             'tanggal' => $validated['tanggal'] ?? now()->toDateString(),
@@ -580,6 +672,16 @@ class AbsensiController extends Controller
             'jam_pulang' => $jamPulang ? $jamPulang . ':00' : null,
         ]);
 
+        ActivityLogger::log(
+            'absensi.update_waktu',
+            'Jam masuk/pulang absensi diperbarui.',
+            $absensi,
+            [
+                'jam_masuk' => $jamMasuk,
+                'jam_pulang' => $jamPulang,
+            ]
+        );
+
         return redirect('/absensi/riwayat?' . http_build_query([
             'tanggal' => $validated['tanggal'] ?? now()->toDateString(),
             'kelas_id' => $validated['kelas_id'] ?? null,
@@ -628,6 +730,26 @@ class AbsensiController extends Controller
                     });
                 });
             });
+    }
+
+    private function markAlphaWouldBeExcludedByFilters(
+        ?string $statusFilter,
+        ?string $sumberFilter,
+        ?string $terlambatFilter
+    ): bool {
+        if ($statusFilter !== null && $statusFilter !== 'alpha') {
+            return true;
+        }
+
+        if ($sumberFilter !== null && $sumberFilter !== 'auto_alpha') {
+            return true;
+        }
+
+        if ($terlambatFilter !== null && $terlambatFilter !== 'tidak') {
+            return true;
+        }
+
+        return false;
     }
 
     private function getMonitorData(string $tanggal, int $limit): array
@@ -780,8 +902,25 @@ class AbsensiController extends Controller
         $filename = 'siswa_' . $siswa->id . '_' . $jenis . '_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(6)) . '.' . $extension;
         $relativePath = 'dataset/' . $filename;
 
-        Storage::disk('public')->makeDirectory('dataset');
-        Storage::disk('public')->put($relativePath, $imageBinary);
+        try {
+            Storage::disk('public')->makeDirectory('dataset');
+            $written = Storage::disk('public')->put($relativePath, $imageBinary);
+
+            if ($written === false) {
+                throw new \RuntimeException('Filesystem public menolak operasi put untuk dataset.');
+            }
+        } catch (\Throwable $e) {
+            Log::error('Gagal menyimpan foto absensi ke storage public.', [
+                'siswa_id' => $siswa->id,
+                'jenis' => $jenis,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Foto gagal disimpan di server. Periksa permission storage dan symlink public/storage.'
+            ], 500);
+        }
 
         if ($jenis === 'masuk') {
             try {
@@ -790,7 +929,7 @@ class AbsensiController extends Controller
                 $jamCutoff = Carbon::createFromFormat('H:i', $cutoffMasuk);
                 $isTerlambat = $jamNow->gt($jamCutoff);
 
-                Absensi::create([
+                $createdAbsensi = Absensi::create([
                     'siswa_id'   => $siswa->id,
                     'tanggal'    => $today,
                     'jam_masuk'  => now()->toTimeString(),
@@ -799,6 +938,17 @@ class AbsensiController extends Controller
                     'sumber'     => 'scan_qr',
                     'terlambat'  => $isTerlambat,
                 ]);
+
+                ActivityLogger::log(
+                    'absensi.scan_masuk',
+                    "Absensi masuk dari scanner disimpan untuk {$siswa->nama}.",
+                    $createdAbsensi,
+                    [
+                        'siswa_id' => $siswa->id,
+                        'tanggal' => $today,
+                        'terlambat' => $isTerlambat,
+                    ]
+                );
             } catch (QueryException $e) {
                 if ((string) $e->getCode() === '23000') {
                     Storage::disk('public')->delete($relativePath);
@@ -821,6 +971,16 @@ class AbsensiController extends Controller
                 if ($oldFotoPulang && $oldFotoPulang !== $filename) {
                     $this->deleteDatasetFile($oldFotoPulang);
                 }
+
+                ActivityLogger::log(
+                    'absensi.scan_pulang',
+                    "Absensi pulang dari scanner disimpan untuk {$siswa->nama}.",
+                    $absensiHariIni,
+                    [
+                        'siswa_id' => $siswa->id,
+                        'tanggal' => $today,
+                    ]
+                );
             } catch (\Throwable $e) {
                 Storage::disk('public')->delete($relativePath);
                 throw $e;

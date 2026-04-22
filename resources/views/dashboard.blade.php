@@ -1,13 +1,20 @@
 <x-app-layout>
+    @php
+        $operasionalMulai = \App\Support\Branding::operationalStart();
+        $operasionalSelesai = \App\Support\Branding::operationalEnd();
+        $jamSekarang = now()->format('H:i');
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Overview</p>
-                <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Dashboard</h2>
-                <p class="mt-1 text-sm text-slate-500">Ringkasan operasional absensi, jadwal, dan aktivitas hari ini.</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Operasional</p>
+                <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Dashboard Absensi</h2>
+                <p class="mt-1 text-sm text-slate-500">Tampilan utama untuk operator sekolah: scan, pantau, dan rekap absensi harian.</p>
             </div>
             <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Tanggal aktif: <span class="ml-2 font-semibold text-slate-900">{{ $today }}</span>
+                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
             </div>
         </div>
     </x-slot>
@@ -20,46 +27,44 @@
     <div class="px-4 py-6 sm:px-6 lg:px-8">
         <div class="space-y-6">
             <section class="overflow-hidden rounded-[28px] bg-slate-900 px-6 py-6 text-white shadow-sm sm:px-8">
-                <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)] xl:items-start">
+                <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)] xl:items-center">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">Ringkasan Operasional</p>
-                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Pantau absensi, jadwal, dan aktivitas harian dalam satu tampilan.</h1>
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">Mode Kiosk</p>
+                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Fokuskan laptop pada scan masuk, scan pulang, dan rekap otomatis.</h1>
                         <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                            Dashboard ini menjadi titik pantau utama untuk admin sekolah. Fokus utamanya adalah siapa yang hadir hari ini,
-                            aktivitas terbaru, dan jadwal pelajaran yang sedang berjalan.
+                            Siswa dari kelas mana pun datang ke titik absensi, menunjukkan QR, lalu melihat ke kamera untuk selfie bukti hadir.
+                            Sistem menyimpan absensi dan dataset wajah secara otomatis.
                         </p>
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
                         <div class="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-                            <p class="text-sm text-slate-300">Status Hari Ini</p>
-                            <p class="mt-3 text-2xl font-semibold">{{ $stats['masuk_hari_ini'] }} siswa masuk</p>
+                            <p class="text-sm text-slate-300">Masuk Hari Ini</p>
+                            <p class="mt-3 text-3xl font-semibold text-white">{{ $stats['masuk_hari_ini'] }}</p>
                             <p class="mt-2 text-sm text-slate-300">Belum pulang: {{ $stats['belum_pulang_hari_ini'] }} siswa</p>
                         </div>
                         <div class="rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-                            <p class="text-sm text-emerald-100">Jadwal Hari Ini</p>
-                            <p class="mt-3 text-2xl font-semibold text-white">{{ $jadwalHariIni->count() }} sesi</p>
-                            <p class="mt-2 text-sm text-emerald-100/90">{{ $hariIni }}</p>
+                            <p class="text-sm text-emerald-100">Status Absensi</p>
+                            <p class="mt-3 text-3xl font-semibold text-white">{{ $stats['status_hari_ini']['hadir'] }} hadir</p>
+                            <p class="mt-2 text-sm text-emerald-100/90">{{ $stats['status_hari_ini']['alpha'] }} alpha</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             @if($isAdmin)
-                <section class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-900">Filter Dashboard</p>
-                            <p class="mt-1 text-sm text-slate-500">Gunakan filter kelas untuk mempersempit ringkasan data.</p>
-                        </div>
-                        <form method="GET" action="/dashboard" class="grid gap-3 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
+                <section class="grid gap-4 lg:grid-cols-[minmax(0,260px)_1fr]">
+                    <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <p class="text-sm font-semibold text-slate-900">Filter Dashboard</p>
+                        <p class="mt-1 text-sm text-slate-500">Opsional untuk melihat aktivitas per kelas.</p>
+                        <form method="GET" action="/dashboard" class="mt-4 space-y-3">
                             <div>
-                                <label for="kelas_id" class="mb-1.5 block text-sm font-medium text-slate-700">Filter Kelas</label>
+                                <label for="kelas_id" class="mb-1.5 block text-sm font-medium text-slate-700">Kelas</label>
                                 <select id="kelas_id" name="kelas_id" class="w-full rounded-2xl border-slate-300 text-sm shadow-sm focus:border-slate-900 focus:ring-slate-900">
-                                <option value="">Semua Kelas</option>
-                                @foreach($kelasList as $kelas)
-                                    <option value="{{ $kelas->id }}" {{ (string) $kelasFilter === (string) $kelas->id ? 'selected' : '' }}>{{ $kelas->nama_kelas }}</option>
-                                @endforeach
+                                    <option value="">Semua Kelas</option>
+                                    @foreach($kelasList as $kelas)
+                                        <option value="{{ $kelas->id }}" {{ (string) $kelasFilter === (string) $kelas->id ? 'selected' : '' }}>{{ $kelas->nama_kelas }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="flex gap-2">
@@ -70,6 +75,17 @@
                             </div>
                         </form>
                     </div>
+
+                    <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <p class="text-sm font-semibold text-slate-900">Arahan Operator</p>
+                        <p class="mt-1 text-sm text-slate-500">Gunakan sidebar untuk berpindah halaman. Dashboard ini hanya untuk memantau ringkasan harian.</p>
+                        <ol class="mt-4 space-y-2 text-sm text-slate-600">
+                            <li>1. Buka `Scan Absensi` saat operasional dimulai.</li>
+                            <li>2. Pantau lonjakan data di `Monitor Absensi`.</li>
+                            <li>3. Gunakan `Rekap Harian` untuk laporan cepat.</li>
+                            <li>4. Masuk ke `Riwayat Absensi` hanya jika perlu audit atau koreksi.</li>
+                        </ol>
+                    </div>
                 </section>
             @endif
 
@@ -77,22 +93,22 @@
                 <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
                     <p class="text-sm text-slate-500">Total Siswa</p>
                     <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['total_siswa'] }}</p>
-                    <p class="mt-2 text-sm text-slate-500">Jumlah siswa terdaftar di sistem.</p>
+                    <p class="mt-2 text-sm text-slate-500">Siswa yang siap ikut absensi.</p>
                 </div>
                 <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                    <p class="text-sm text-slate-500">Masuk Hari Ini</p>
-                    <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['masuk_hari_ini'] }}</p>
-                    <p class="mt-2 text-sm text-slate-500">Absensi masuk yang berhasil dicatat hari ini.</p>
+                    <p class="text-sm text-slate-500">Total Kelas</p>
+                    <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['total_kelas'] }}</p>
+                    <p class="mt-2 text-sm text-slate-500">Kelas aktif di sekolah.</p>
                 </div>
                 <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
                     <p class="text-sm text-slate-500">Pulang Hari Ini</p>
                     <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['pulang_hari_ini'] }}</p>
-                    <p class="mt-2 text-sm text-slate-500">Absensi pulang yang tercatat pada hari yang sama.</p>
+                    <p class="mt-2 text-sm text-slate-500">Siswa yang sudah menyelesaikan absensi pulang.</p>
                 </div>
                 <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                    <p class="text-sm text-slate-500">Belum Pulang</p>
-                    <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['belum_pulang_hari_ini'] }}</p>
-                    <p class="mt-2 text-sm text-slate-500">Siswa yang sudah masuk tetapi belum tercatat pulang.</p>
+                    <p class="text-sm text-slate-500">Alpha Hari Ini</p>
+                    <p class="mt-4 text-3xl font-semibold text-slate-900">{{ $stats['status_hari_ini']['alpha'] }}</p>
+                    <p class="mt-2 text-sm text-slate-500">Status alpha yang tercatat hari ini.</p>
                 </div>
             </section>
 
@@ -100,8 +116,8 @@
                 <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-base font-semibold text-slate-900">Status Kehadiran Hari Ini</h3>
-                            <p class="mt-1 text-sm text-slate-500">Distribusi status absensi berdasarkan pencatatan hari ini.</p>
+                            <h3 class="text-base font-semibold text-slate-900">Distribusi Status Hari Ini</h3>
+                            <p class="mt-1 text-sm text-slate-500">Ringkasan cepat untuk melihat kondisi absensi harian.</p>
                         </div>
                         <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Live</span>
                     </div>
@@ -128,7 +144,7 @@
 
                 <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                     <h3 class="text-base font-semibold text-slate-900">Aktivitas Terbaru</h3>
-                    <p class="mt-1 text-sm text-slate-500">Perubahan absensi terakhir yang tercatat di sistem.</p>
+                    <p class="mt-1 text-sm text-slate-500">Perubahan absensi terakhir yang tercatat hari ini.</p>
                     <div class="mt-5 space-y-3">
                         @forelse($activityItems as $item)
                             <div class="rounded-2xl border border-slate-200 p-4">
@@ -147,53 +163,6 @@
                             </div>
                         @endforelse
                     </div>
-                </div>
-            </section>
-
-            <section class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-slate-900">Jadwal Pelajaran Hari Ini</h3>
-                        <p class="mt-1 text-sm text-slate-500">{{ $hariIni }}. Gunakan tabel ini untuk melihat sesi yang aktif, berikutnya, atau sudah selesai.</p>
-                    </div>
-                    <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{{ $jamSekarang }}</span>
-                </div>
-
-                <div class="mt-5 w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200">
-                    <table class="w-full min-w-[700px] divide-y divide-slate-200 text-sm">
-                        <thead class="bg-slate-50 text-slate-700">
-                            <tr>
-                                <th class="px-4 py-3 text-left font-semibold">Kelas</th>
-                                <th class="px-4 py-3 text-left font-semibold">Mata Pelajaran</th>
-                                <th class="px-4 py-3 text-left font-semibold">Jam</th>
-                                <th class="px-4 py-3 text-left font-semibold">Kondisi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse($jadwalHariIni as $jadwal)
-                                @php
-                                    $isAktif = $jamSekarang >= $jadwal->jam_mulai && $jamSekarang < $jadwal->jam_selesai;
-                                    $isDatang = $jamSekarang < $jadwal->jam_mulai;
-                                    $statusText = $isAktif ? 'Sedang berlangsung' : ($isDatang ? 'Akan datang' : 'Selesai');
-                                    $statusClass = $isAktif
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                        : ($isDatang ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200');
-                                @endphp
-                                <tr>
-                                    <td class="px-4 py-3 text-slate-700">{{ $jadwal->kelas->nama_kelas ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $jadwal->mataPelajaran->nama ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ \Illuminate\Support\Str::of($jadwal->jam_mulai)->substr(0, 5) }} - {{ \Illuminate\Support\Str::of($jadwal->jam_selesai)->substr(0, 5) }}</td>
-                                    <td class="px-4 py-3">
-                                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">{{ $statusText }}</span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">Tidak ada jadwal hari ini.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
                 </div>
             </section>
         </div>

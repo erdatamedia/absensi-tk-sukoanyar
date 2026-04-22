@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,6 +33,13 @@ class ParentCodeAuthController extends Controller
         }
 
         Auth::login($user);
+        ActivityLogger::log(
+            'auth.parent_code_login',
+            "Orang tua login menggunakan kode akses untuk {$user->name}.",
+            $user,
+            [],
+            (int) $user->id
+        );
 
         return redirect('/orang-tua/absensi-anak');
     }

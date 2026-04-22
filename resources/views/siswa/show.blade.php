@@ -1,36 +1,62 @@
 <x-app-layout>
+    @php
+        $operasionalMulai = \App\Support\Branding::operationalStart();
+        $operasionalSelesai = \App\Support\Branding::operationalEnd();
+        $jamSekarang = now()->format('H:i');
+    @endphp
+
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Detail Siswa</h2>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Master Data</p>
+                <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Detail Siswa</h2>
+                <p class="mt-1 text-sm text-slate-500">Lihat identitas siswa dan cetak kartu QR untuk keperluan absensi.</p>
+            </div>
+            <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
+            </div>
+        </div>
     </x-slot>
 
-    <div class="py-6">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-4">
+    <div class="px-4 py-6 sm:px-6 lg:px-8">
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <section class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <h1 class="text-lg font-semibold text-gray-900">Detail Siswa</h1>
-                    <div class="flex gap-2 text-sm">
-                        <a href="{{ route('siswa.index') }}" class="rounded-md border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50">Kembali</a>
-                        <a href="{{ route('siswa.edit', $siswa->id) }}" class="rounded-md border border-blue-300 px-3 py-1.5 text-blue-700 hover:bg-blue-50">Edit</a>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-900">{{ $siswa->nama }}</h1>
+                        <p class="mt-1 text-sm text-slate-500">NIS {{ $siswa->nis }} • {{ $siswa->kelas->nama_kelas ?? '-' }}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('siswa.card-pdf', $siswa) }}" target="_blank" class="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">Cetak Kartu PDF</a>
+                        <a href="{{ route('siswa.edit', $siswa) }}" class="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Edit</a>
                     </div>
                 </div>
 
-                <div class="w-full max-w-full overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="w-full min-w-[520px] divide-y divide-gray-200 text-sm">
-                        <tbody class="divide-y divide-gray-100">
-                            <tr><th class="w-44 bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">NIS</th><td class="px-4 py-3">{{ $siswa->nis }}</td></tr>
-                            <tr><th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">Nama</th><td class="px-4 py-3">{{ $siswa->nama }}</td></tr>
-                            <tr><th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">Kelas</th><td class="px-4 py-3">{{ $siswa->kelas->nama_kelas ?? '-' }}</td></tr>
-                            <tr><th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">Jenis Kelamin</th><td class="px-4 py-3">{{ $siswa->jenis_kelamin }}</td></tr>
-                            <tr><th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">Tanggal Lahir</th><td class="px-4 py-3">{{ $siswa->tanggal_lahir ?? '-' }}</td></tr>
-                            <tr><th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">QR Token</th><td class="px-4 py-3 break-all">{{ $siswa->qr_token }}</td></tr>
-                            <tr>
-                                <th class="bg-gray-50 px-4 py-3 text-left font-semibold text-gray-700">QR Code</th>
-                                <td class="px-4 py-3">{!! QrCode::size(160)->generate($siswa->qr_token) !!}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+                    <dl class="divide-y divide-slate-200 text-sm">
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">NIS</dt><dd class="text-slate-900">{{ $siswa->nis }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Nama Siswa</dt><dd class="text-slate-900">{{ $siswa->nama }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Kelas</dt><dd class="text-slate-900">{{ $siswa->kelas->nama_kelas ?? '-' }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Jenis Kelamin</dt><dd class="text-slate-900">{{ $siswa->jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan' }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Tanggal Lahir</dt><dd class="text-slate-900">{{ $siswa->tanggal_lahir ? date('d F Y', strtotime($siswa->tanggal_lahir)) : '-' }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Keterangan</dt><dd class="text-slate-900">{{ $siswa->keterangan ?: '-' }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">Alamat</dt><dd class="text-slate-900">{{ $siswa->alamat ?: '-' }}</dd></div>
+                        <div class="grid gap-2 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)]"><dt class="font-medium text-slate-500">QR Token</dt><dd class="break-all text-slate-900">{{ $siswa->qr_token }}</dd></div>
+                    </dl>
                 </div>
-            </div>
+            </section>
+
+            <aside class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Kartu Siswa</p>
+                <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-center">
+                    <div class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-white">{{ $siswa->kelas->nama_kelas ?? 'Kelas' }}</div>
+                    <p class="mt-4 text-lg font-semibold text-slate-900">{{ $siswa->nama }}</p>
+                    <p class="mt-1 text-sm text-slate-500">NIS {{ $siswa->nis }}</p>
+                    <div class="mt-5 flex justify-center rounded-3xl bg-white p-4 shadow-sm">{!! QrCode::size(180)->generate($siswa->qr_token) !!}</div>
+                </div>
+                <a href="{{ route('siswa.index') }}" class="mt-4 inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Kembali ke Data Siswa</a>
+            </aside>
         </div>
     </div>
 </x-app-layout>

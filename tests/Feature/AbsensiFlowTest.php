@@ -68,6 +68,11 @@ class AbsensiFlowTest extends TestCase
         $this->assertSame('hadir', $absensiMasuk->status);
         $this->assertSame('scan_qr', $absensiMasuk->sumber);
         Storage::disk('public')->assertExists('dataset/' . $absensiMasuk->foto_masuk);
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $admin->id,
+            'action' => 'absensi.scan_masuk',
+            'subject_id' => $absensiMasuk->id,
+        ]);
 
         $this->actingAs($admin)
             ->postJson('/absensi/scan', [
@@ -107,6 +112,11 @@ class AbsensiFlowTest extends TestCase
         $this->assertNotNull($absensiMasuk->jam_pulang);
         $this->assertNotNull($absensiMasuk->foto_pulang);
         Storage::disk('public')->assertExists('dataset/' . $absensiMasuk->foto_pulang);
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $admin->id,
+            'action' => 'absensi.scan_pulang',
+            'subject_id' => $absensiMasuk->id,
+        ]);
     }
 
     public function test_deleting_absensi_also_deletes_saved_dataset_files(): void
@@ -349,6 +359,81 @@ class AbsensiFlowTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('absensi', 1);
+    }
+
+    public function test_mark_alpha_respects_search_filter_and_only_marks_matching_students(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK G',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswaTarget = Siswa::create([
+            'nis' => 'S-007',
+            'nama' => 'Alya',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        $siswaLain = Siswa::create([
+            'nis' => 'S-008',
+            'nama' => 'Bimo',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'L',
+        ]);
+
+        $this->actingAs($admin)
+            ->post('/absensi/mark-alpha', [
+                'tanggal' => '2026-04-13',
+                'kelas_id' => (string) $kelas->id,
+                'q' => 'Alya',
+            ])
+            ->assertRedirect('/absensi/riwayat?tanggal=2026-04-13&kelas_id=' . $kelas->id . '&q=Alya');
+
+        $this->assertDatabaseHas('absensi', [
+            'siswa_id' => $siswaTarget->id,
+            'tanggal' => '2026-04-13',
+            'status' => 'alpha',
+            'sumber' => 'auto_alpha',
+        ]);
+
+        $this->assertDatabaseMissing('absensi', [
+            'siswa_id' => $siswaLain->id,
+            'tanggal' => '2026-04-13',
+        ]);
+    }
+
+    public function test_mark_alpha_does_not_create_rows_when_current_filters_exclude_auto_alpha_rows(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK H',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        Siswa::create([
+            'nis' => 'S-009',
+            'nama' => 'Caca',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        $this->actingAs($admin)
+            ->post('/absensi/mark-alpha', [
+                'tanggal' => '2026-04-13',
+                'kelas_id' => (string) $kelas->id,
+                'status_filter' => 'hadir',
+            ])
+            ->assertRedirect('/absensi/riwayat?tanggal=2026-04-13&kelas_id=' . $kelas->id . '&status_filter=hadir');
+
+        $this->assertDatabaseCount('absensi', 0);
     }
 
     private function sampleBase64Png(): string

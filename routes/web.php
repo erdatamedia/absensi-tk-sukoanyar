@@ -7,11 +7,8 @@ use App\Http\Controllers\SiswaController;
 
 use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\JadwalPelajaranController;
-use App\Http\Controllers\OrangTuaSiswaController;
-use App\Http\Controllers\PortalOrangTuaController;
 use App\Http\Controllers\KelasController;
-use App\Http\Controllers\ParentCodeAuthController;
+use App\Http\Controllers\AppSettingController;
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/absensi', [AbsensiController::class,'index']);
@@ -30,27 +27,19 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/absensi/scan',[AbsensiController::class,'scan']);
     Route::post('/absensi/simpan',[AbsensiController::class,'simpan']);
 
+    Route::post('/siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
+    Route::get('/siswa/kartu-pdf/massal', [SiswaController::class, 'massCardPdf'])->name('siswa.cards-pdf');
+    Route::get('/siswa/{siswa}/kartu-pdf', [SiswaController::class, 'cardPdf'])->name('siswa.card-pdf');
     Route::resource('siswa', SiswaController::class);
     Route::get('/kelas', [KelasController::class, 'index']);
     Route::post('/kelas', [KelasController::class, 'store']);
     Route::patch('/kelas/{kelas}', [KelasController::class, 'update']);
     Route::delete('/kelas/{kelas}', [KelasController::class, 'destroy']);
-
-    Route::get('/jadwal', [JadwalPelajaranController::class, 'index']);
-    Route::post('/jadwal/mapel', [JadwalPelajaranController::class, 'storeMataPelajaran']);
-    Route::patch('/jadwal/mapel/{mapel}', [JadwalPelajaranController::class, 'updateMataPelajaran']);
-    Route::delete('/jadwal/mapel/{mapel}', [JadwalPelajaranController::class, 'destroyMataPelajaran']);
-    Route::post('/jadwal', [JadwalPelajaranController::class, 'storeJadwal']);
-    Route::patch('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'updateJadwal']);
-    Route::delete('/jadwal/{jadwal}', [JadwalPelajaranController::class, 'destroy']);
+    Route::get('/pengaturan-sekolah', [AppSettingController::class, 'edit'])->name('settings.school.edit');
+    Route::put('/pengaturan-sekolah', [AppSettingController::class, 'update'])->name('settings.school.update');
 });
 
 Route::view('/', 'welcome');
-
-Route::middleware('guest')->group(function () {
-    Route::get('/orang-tua/masuk', [ParentCodeAuthController::class, 'showForm']);
-    Route::post('/orang-tua/masuk', [ParentCodeAuthController::class, 'login']);
-});
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -60,17 +49,6 @@ Route::get('/dashboard/data', [DashboardController::class, 'data'])
     ->middleware(['auth', 'verified', 'role:admin']);
 
 Route::middleware('auth')->group(function () {
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/orang-tua/relasi', [OrangTuaSiswaController::class, 'index']);
-        Route::post('/orang-tua/relasi', [OrangTuaSiswaController::class, 'store']);
-        Route::delete('/orang-tua/relasi/{relasi}', [OrangTuaSiswaController::class, 'destroy']);
-        Route::post('/orang-tua/kode/{user}', [OrangTuaSiswaController::class, 'generateCode']);
-    });
-
-    Route::middleware('role:orang_tua,admin')->group(function () {
-        Route::get('/orang-tua/absensi-anak', [PortalOrangTuaController::class, 'index']);
-    });
-
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -1,13 +1,20 @@
 <x-app-layout>
+    @php
+        $operasionalMulai = \App\Support\Branding::operationalStart();
+        $operasionalSelesai = \App\Support\Branding::operationalEnd();
+        $jamSekarang = now()->format('H:i');
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Absensi</p>
                 <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Riwayat Absensi</h2>
-                <p class="mt-1 text-sm text-slate-500">Kelola data absensi harian, lihat ringkasan kelas, dan lakukan koreksi data bila diperlukan.</p>
+                <p class="mt-1 text-sm text-slate-500">Audit hasil scan harian, lihat siswa yang belum lengkap, dan koreksi data bila memang perlu.</p>
             </div>
             <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Tanggal aktif: <span class="ml-2 font-semibold text-slate-900">{{ $tanggal }}</span>
+                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
             </div>
         </div>
     </x-slot>
@@ -18,10 +25,10 @@
                 <div class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] xl:items-center">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">Riwayat Harian</p>
-                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Saring, audit, dan perbaiki data absensi dari satu halaman kerja.</h1>
+                        <h1 class="mt-3 text-3xl font-semibold leading-tight">Saring, audit, dan koreksi hasil absensi dari flow scan QR dan selfie.</h1>
                         <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                            Halaman ini menggabungkan rekap kelas, daftar siswa yang belum masuk atau pulang, dan tabel riwayat detail.
-                            Fokusnya adalah operasional admin, bukan hanya pelaporan.
+                            Halaman ini dipakai setelah operasional scan berjalan. Admin bisa melihat siapa yang belum datang,
+                            siapa yang belum pulang, lalu memperbaiki data jika ada kendala di lapangan.
                         </p>
                     </div>
 
@@ -38,12 +45,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <section class="flex flex-wrap gap-3 text-sm text-slate-600">
-                <a href="/absensi" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Buka Scan Absensi</a>
-                <a href="/absensi/monitor" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Monitor Harian</a>
-                <a href="/absensi/manual" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Input Manual</a>
             </section>
 
             @if(session('success'))

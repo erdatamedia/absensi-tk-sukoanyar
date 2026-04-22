@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OrangTuaSiswa;
 use App\Models\Siswa;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -41,14 +42,33 @@ class OrangTuaSiswaController extends Controller
             return redirect('/orang-tua/relasi')->with('error', 'Relasi orang tua dan siswa sudah ada.');
         }
 
-        OrangTuaSiswa::create($validated);
+        $relasi = OrangTuaSiswa::create($validated);
+
+        ActivityLogger::log(
+            'orang_tua.relasi_store',
+            'Relasi orang tua dan siswa ditambahkan.',
+            $relasi,
+            $validated
+        );
 
         return redirect('/orang-tua/relasi')->with('success', 'Relasi orang tua-siswa berhasil ditambahkan.');
     }
 
     public function destroy(OrangTuaSiswa $relasi)
     {
+        $properties = [
+            'user_id' => $relasi->user_id,
+            'siswa_id' => $relasi->siswa_id,
+        ];
+
         $relasi->delete();
+
+        ActivityLogger::log(
+            'orang_tua.relasi_destroy',
+            'Relasi orang tua dan siswa dihapus.',
+            null,
+            $properties
+        );
 
         return redirect('/orang-tua/relasi')->with('success', 'Relasi orang tua-siswa berhasil dihapus.');
     }
@@ -66,6 +86,15 @@ class OrangTuaSiswaController extends Controller
             'parent_access_code' => $code,
             'parent_access_code_expires_at' => $expiresAt,
         ]);
+
+        ActivityLogger::log(
+            'orang_tua.generate_code',
+            "Kode akses orang tua dibuat untuk {$user->name}.",
+            $user,
+            [
+                'expires_at' => $expiresAt->toDateTimeString(),
+            ]
+        );
 
         return redirect('/orang-tua/relasi')->with(
             'success',

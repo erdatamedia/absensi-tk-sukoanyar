@@ -1,4 +1,10 @@
 <x-app-layout>
+    @php
+        $operasionalMulai = \App\Support\Branding::operationalStart();
+        $operasionalSelesai = \App\Support\Branding::operationalEnd();
+        $jamSekarang = now()->format('H:i');
+    @endphp
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -7,7 +13,8 @@
                 <p class="mt-1 text-sm text-slate-500">Pindai QR siswa, verifikasi identitas, lalu ambil selfie untuk menyimpan absensi.</p>
             </div>
             <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Flow: <span class="ml-2 font-semibold text-slate-900">Scan QR -> Selfie -> Simpan</span>
+                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
             </div>
         </div>
     </x-slot>
@@ -41,56 +48,37 @@
                     </div>
                 </div>
             </section>
-
-            <section class="flex flex-wrap gap-3 text-sm text-slate-600">
-                <a href="/absensi/rekap" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Rekap Sederhana</a>
-                <a href="/absensi/riwayat" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Lihat Riwayat Absensi</a>
-                <a href="/absensi/monitor" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Monitor Harian</a>
-                <a href="/absensi/manual" class="rounded-full border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-50">Input Manual</a>
-            </section>
-
-            <section class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+            <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
                 <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <h3 class="text-base font-semibold text-slate-900">Scanner QR</h3>
-                            <p class="mt-1 text-sm text-slate-500">Arahkan QR code siswa ke area scanner sampai sistem mengenali identitasnya.</p>
+                            <h3 class="text-base font-semibold text-slate-900">Kamera Absensi</h3>
+                            <p class="mt-1 text-sm text-slate-500">Satu kamera dipakai untuk dua tahap: baca QR siswa lalu ambil selfie bukti hadir. Ini lebih stabil untuk laptop kiosk.</p>
                         </div>
-                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Kamera belakang</span>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Mode kiosk</span>
                     </div>
 
                     <div class="mt-5 overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <div id="reader" class="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white"></div>
                     </div>
 
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <button id="btnStartScanner" type="button" class="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">Mulai Kamera</button>
+                        <button id="btnRetryScanner" type="button" class="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Muat Ulang Kamera</button>
+                    </div>
+
                     <div class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                        <p class="text-sm font-medium text-slate-700">Status Scanner</p>
-                        <p id="statusText" class="mt-2 text-sm text-slate-600">Arahkan QR siswa ke scanner.</p>
+                        <p class="text-sm font-medium text-slate-700">Status Kamera</p>
+                        <p id="statusText" class="mt-2 text-sm text-slate-600">Arahkan QR siswa ke kamera.</p>
                     </div>
                 </div>
 
                 <div class="space-y-6">
                     <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 class="text-base font-semibold text-slate-900">Kamera Selfie</h3>
-                                <p class="mt-1 text-sm text-slate-500">Selfie hanya diambil setelah tombol aksi ditekan.</p>
-                            </div>
-                            <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">Kamera depan</span>
-                        </div>
-
-                        <div class="mt-5 overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                            <div class="rounded-[20px] border border-slate-200 bg-white p-3">
-                                <video id="camera" autoplay playsinline class="mx-auto aspect-[3/4] w-full max-w-sm rounded-2xl bg-slate-100 object-cover"></video>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                         <div class="flex items-center justify-between gap-4">
                             <div>
                                 <h3 class="text-base font-semibold text-slate-900">Hasil Verifikasi</h3>
-                                <p class="mt-1 text-sm text-slate-500">Informasi siswa dan aksi absensi akan muncul setelah QR berhasil terbaca.</p>
+                                <p class="mt-1 text-sm text-slate-500">Setelah QR terbaca, siswa tinggal melihat kamera yang sama lalu menekan tombol absensi.</p>
                             </div>
                             <span id="statusBadge" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">Menunggu scan</span>
                         </div>
@@ -98,14 +86,26 @@
                         <div class="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Siswa</p>
                             <p id="namaSiswa" class="mt-2 text-xl font-semibold text-slate-900">Belum ada siswa terdeteksi</p>
+                            <p id="cameraHint" class="mt-3 text-sm text-slate-500">Setelah QR valid, minta siswa melihat ke kamera untuk selfie bukti hadir.</p>
                             <p id="feedbackText" class="hidden mt-4 rounded-2xl border px-4 py-3 text-sm"></p>
                         </div>
 
                         <div id="actionButtons" class="hidden mt-5 flex flex-wrap gap-3">
-                            <button id="btnMasuk" class="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">Selfie Masuk</button>
-                            <button id="btnPulang" class="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500">Selfie Pulang</button>
-                            <button id="btnReset" type="button" class="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Scan Lagi</button>
+                            <button id="btnMasuk" class="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800">Ambil Selfie Masuk</button>
+                            <button id="btnPulang" class="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500">Ambil Selfie Pulang</button>
+                            <button id="btnReset" type="button" class="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Siswa Berikutnya</button>
                         </div>
+                    </div>
+
+                    <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 class="text-base font-semibold text-slate-900">Alur Operator</h3>
+                        <ol class="mt-4 space-y-3 text-sm text-slate-600">
+                            <li>1. Guru membuka halaman ini dan menyalakan kamera.</li>
+                            <li>2. Siswa datang bergantian, menunjukkan QR ke kamera.</li>
+                            <li>3. Nama siswa tampil otomatis.</li>
+                            <li>4. Siswa melihat kamera, lalu tekan tombol selfie sesuai kebutuhan.</li>
+                            <li>5. Sistem menyimpan absensi dan foto dataset, lalu siap untuk siswa berikutnya.</li>
+                        </ol>
                     </div>
                 </div>
             </section>
@@ -116,15 +116,20 @@
                 let scanned = false;
                 let currentSiswaId = null;
                 let scanner = null;
+                let scannerRunning = false;
+                let scannerPaused = false;
 
                 const actionButtons = document.getElementById("actionButtons");
                 const btnMasuk = document.getElementById("btnMasuk");
                 const btnPulang = document.getElementById("btnPulang");
                 const btnReset = document.getElementById("btnReset");
+                const btnStartScanner = document.getElementById("btnStartScanner");
+                const btnRetryScanner = document.getElementById("btnRetryScanner");
                 const statusText = document.getElementById("statusText");
                 const namaSiswa = document.getElementById("namaSiswa");
                 const feedbackText = document.getElementById("feedbackText");
                 const statusBadge = document.getElementById("statusBadge");
+                const cameraHint = document.getElementById("cameraHint");
                 let resetTimer = null;
 
                 function setStatusBadge(message, type = "idle") {
@@ -152,18 +157,8 @@
                     feedbackText.classList.remove("hidden");
                 }
 
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                    .then(stream => {
-                        document.getElementById("camera").srcObject = stream;
-                    })
-                    .catch(err => {
-                        statusText.innerText = "Kamera selfie tidak bisa diakses.";
-                        setStatusBadge("Kamera selfie error", "error");
-                        console.error(err);
-                    });
-
                 function takePhoto() {
-                    const video = document.getElementById("camera");
+                    const video = document.querySelector("#reader video");
                     const canvas = document.getElementById("canvas");
 
                     if (!video.videoWidth || !video.videoHeight) return null;
@@ -190,13 +185,62 @@
                     return response.json();
                 }
 
-                async function saveAbsensi(jenis) {
-                    const foto = takePhoto();
-                    if (!foto) {
-                        setFeedback("Kamera belum siap. Coba lagi dalam 1-2 detik.", "error");
+                function describeCameraError(error) {
+                    const name = error?.name || "";
+                    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+                        return "Izin kamera ditolak. Izinkan akses kamera di browser lalu coba lagi.";
+                    }
+
+                    if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+                        return "Perangkat tidak menemukan kamera yang bisa digunakan.";
+                    }
+
+                    if (name === "NotReadableError" || name === "TrackStartError") {
+                        return "Kamera sedang dipakai aplikasi atau tab lain. Tutup yang lain lalu coba lagi.";
+                    }
+
+                    return error?.message || "Kamera tidak bisa diakses pada perangkat ini.";
+                }
+
+                async function stopQrScanner() {
+                    if (!scanner || !scannerRunning) return;
+
+                    try {
+                        await scanner.stop();
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    scannerRunning = false;
+                }
+
+                async function pauseScannerForSelfie() {
+                    if (!scanner || !scannerRunning || scannerPaused) {
                         return;
                     }
 
+                    try {
+                        scanner.pause(false);
+                        scannerPaused = true;
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+
+                async function resumeScannerAfterSelfie() {
+                    if (!scanner || !scannerPaused) {
+                        return;
+                    }
+
+                    try {
+                        scanner.resume();
+                        scannerPaused = false;
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+
+                async function saveAbsensi(jenis) {
                     btnMasuk.disabled = true;
                     btnPulang.disabled = true;
                     setStatusBadge("Menyimpan", "warning");
@@ -209,6 +253,14 @@
                     }
 
                     try {
+                        await pauseScannerForSelfie();
+                        await new Promise(resolve => setTimeout(resolve, 400));
+                        const foto = takePhoto();
+
+                        if (!foto) {
+                            throw new Error("Frame kamera belum siap untuk selfie. Arahkan wajah ke kamera lalu coba lagi.");
+                        }
+
                         const response = await fetch('/absensi/simpan', {
                             method: 'POST',
                             headers: {
@@ -225,6 +277,7 @@
                             statusText.innerText = "Absensi masuk berhasil disimpan.";
                             setStatusBadge("Masuk tersimpan", "success");
                             setFeedback("Absensi masuk berhasil untuk " + data.nama + ".", "success");
+                            cameraHint.innerText = "Absensi masuk tersimpan. Jika ini absensi pulang, siswa yang sama bisa lanjut tekan tombol pulang.";
                             btnMasuk.classList.add("hidden");
                             btnPulang.classList.remove("hidden");
                             btnPulang.disabled = false;
@@ -232,17 +285,19 @@
                             statusText.innerText = "Absensi pulang berhasil disimpan.";
                             setStatusBadge("Pulang tersimpan", "success");
                             setFeedback("Absensi pulang berhasil untuk " + data.nama + ".", "success");
+                            cameraHint.innerText = "Data lengkap tersimpan. Sistem akan kembali siap untuk siswa berikutnya.";
                             resetTimer = setTimeout(() => {
                                 resetScanState("Arahkan QR siswa berikutnya ke scanner.");
                             }, 1400);
                         }
                     } catch (err) {
                         const message = err.message || "Terjadi kesalahan saat menyimpan absensi.";
-                        resetScanState("Arahkan QR siswa ke scanner.");
                         setStatusBadge("Gagal simpan", "error");
                         setFeedback(message, "error");
+                        resetScanState("Arahkan QR siswa ke scanner.");
                         console.error(err);
                     } finally {
+                        await resumeScannerAfterSelfie();
                         btnMasuk.disabled = false;
                         btnPulang.disabled = false;
                         btnMasuk.innerText = "Selfie Masuk";
@@ -259,12 +314,14 @@
                     actionButtons.classList.add("hidden");
                     btnMasuk.classList.remove("hidden");
                     btnPulang.classList.remove("hidden");
+                    cameraHint.innerText = "Setelah QR valid, minta siswa melihat ke kamera untuk selfie bukti hadir.";
                     statusText.innerText = message;
                     setStatusBadge("Menunggu scan", "idle");
                     if (resetTimer) {
                         clearTimeout(resetTimer);
                         resetTimer = null;
                     }
+                    startQrScanner();
                 }
 
                 async function onScanSuccess(decodedText) {
@@ -277,6 +334,8 @@
                     try {
                         const data = await verifyQrToken(decodedText);
                         if (data.status !== 'ok') throw new Error(data.msg || 'QR tidak dikenal');
+
+                        await pauseScannerForSelfie();
 
                         currentSiswaId = data.siswa_id;
                         namaSiswa.innerText = "Siswa: " + data.nama;
@@ -301,15 +360,18 @@
                         } else if (data.can_masuk) {
                             statusText.innerText = "Siswa belum absen masuk. Tekan Selfie Masuk.";
                             setStatusBadge("Siap masuk", "info");
+                            cameraHint.innerText = "Minta siswa melihat ke kamera, lalu tekan Ambil Selfie Masuk.";
                             setFeedback("Siap selfie masuk untuk " + data.nama + ".", "info");
                         } else if (data.can_pulang) {
                             statusText.innerText = "Siswa sudah masuk. Tekan Selfie Pulang.";
                             setStatusBadge("Siap pulang", "info");
+                            cameraHint.innerText = "Minta siswa melihat ke kamera, lalu tekan Ambil Selfie Pulang.";
                             setFeedback("Siap selfie pulang untuk " + data.nama + ".", "info");
                         } else {
                             statusText.innerText = "Absensi masuk & pulang hari ini sudah lengkap.";
                             actionButtons.classList.add("hidden");
                             setStatusBadge("Sudah lengkap", "success");
+                            cameraHint.innerText = "Siswa ini sudah selesai absensi untuk hari ini.";
                             setFeedback("Absensi hari ini sudah lengkap. Scanner reset otomatis.", "info");
                             resetTimer = setTimeout(() => {
                                 resetScanState("Arahkan QR siswa berikutnya ke scanner.");
@@ -323,18 +385,84 @@
                     }
                 }
 
-                if (typeof window.Html5QrcodeScanner !== "function") {
-                    statusText.innerText = "Scanner QR belum siap dimuat.";
-                    setStatusBadge("Scanner gagal dimuat", "error");
-                    setFeedback("Asset scanner lokal tidak berhasil dimuat. Cek build frontend Vite.", "error");
-                } else {
-                    scanner = new window.Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-                    scanner.render(onScanSuccess);
+                async function startQrScanner() {
+                    if (scannerRunning || scanned) {
+                        return;
+                    }
+
+                    if (typeof window.Html5Qrcode !== "function") {
+                        statusText.innerText = "Scanner QR belum siap dimuat.";
+                        setStatusBadge("Scanner gagal dimuat", "error");
+                        setFeedback("Asset scanner lokal tidak berhasil dimuat. Cek build frontend Vite.", "error");
+                        return;
+                    }
+
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        statusText.innerText = "Browser tidak mendukung akses kamera.";
+                        setStatusBadge("Browser tidak didukung", "error");
+                        setFeedback("Gunakan Chrome, Edge, Safari, atau browser modern lain yang mendukung kamera.", "error");
+                        return;
+                    }
+
+                    try {
+                        if (!scanner) {
+                            scanner = new window.Html5Qrcode("reader");
+                        }
+
+                        statusText.innerText = "Menyalakan kamera belakang...";
+                        setStatusBadge("Menyalakan scanner", "warning");
+
+                        const config = {
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 },
+                            aspectRatio: 1.333334,
+                            rememberLastUsedCamera: true,
+                        };
+
+                        const cameras = await window.Html5Qrcode.getCameras();
+                        let cameraConfig = undefined;
+
+                        if (Array.isArray(cameras) && cameras.length > 0) {
+                            cameraConfig = { deviceId: { exact: cameras[0].id } };
+                        } else {
+                            cameraConfig = { facingMode: "user" };
+                        }
+
+                        await scanner.start(
+                            cameraConfig,
+                            config,
+                            onScanSuccess,
+                            () => {}
+                        );
+
+                        scannerRunning = true;
+                        scannerPaused = false;
+                        statusText.innerText = "Scanner aktif. Arahkan QR siswa ke area scanner.";
+                        setStatusBadge("Scanner aktif", "success");
+                        cameraHint.innerText = "Setelah QR valid, minta siswa melihat ke kamera untuk selfie bukti hadir.";
+                        feedbackText.classList.add("hidden");
+                    } catch (error) {
+                        console.error(error);
+                        scannerRunning = false;
+                        statusText.innerText = "Scanner QR tidak bisa dijalankan.";
+                        setStatusBadge("Scanner gagal", "error");
+                        setFeedback(describeCameraError(error), "error");
+                    }
                 }
+
+                startQrScanner();
 
                 btnMasuk.addEventListener("click", () => saveAbsensi("masuk"));
                 btnPulang.addEventListener("click", () => saveAbsensi("pulang"));
                 btnReset.addEventListener("click", () => resetScanState("Arahkan QR siswa ke scanner."));
+                btnStartScanner.addEventListener("click", () => startQrScanner());
+                btnRetryScanner.addEventListener("click", async () => {
+                    await stopQrScanner();
+                    document.getElementById("reader").innerHTML = "";
+                    scanner = new window.Html5Qrcode("reader");
+                    scannerPaused = false;
+                    startQrScanner();
+                });
             </script>
         </div>
     </div>

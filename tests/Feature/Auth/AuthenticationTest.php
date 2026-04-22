@@ -27,6 +27,10 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $user->id,
+            'action' => 'auth.login',
+        ]);
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
@@ -49,6 +53,10 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $user->id,
+            'action' => 'auth.logout',
+        ]);
         $response->assertRedirect('/');
     }
 }

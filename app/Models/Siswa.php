@@ -15,6 +15,8 @@ class Siswa extends Model
         'kelas_id',
         'jenis_kelamin',
         'tanggal_lahir',
+        'alamat',
+        'keterangan',
         'qr_token',
         'foto_referensi'
     ];
