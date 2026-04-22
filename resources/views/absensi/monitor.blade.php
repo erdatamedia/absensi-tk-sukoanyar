@@ -8,12 +8,12 @@
     <x-slot name="header">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Absensi</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Operasional Realtime</p>
                 <h2 class="mt-1 text-2xl font-semibold leading-tight text-slate-900">Monitor Absensi</h2>
-                <p class="mt-1 text-sm text-slate-500">Pantau scan masuk, scan pulang, dan status alpha hari ini secara realtime.</p>
+                <p class="mt-1 text-sm text-slate-500">Pantau scan masuk, scan pulang, dan status alpha hari ini dari titik absensi.</p>
             </div>
             <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
+                Jam Operasional {{ $operasionalMulai }} - {{ $operasionalSelesai }}:
                 <span class="ml-2 font-semibold text-slate-900">{{ $jamSekarang }} WIB</span>
             </div>
         </div>

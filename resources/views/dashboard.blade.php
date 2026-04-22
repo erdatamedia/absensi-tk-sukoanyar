@@ -82,7 +82,7 @@
                         <ol class="mt-4 space-y-2 text-sm text-slate-600">
                             <li>1. Buka `Scan Absensi` saat operasional dimulai.</li>
                             <li>2. Pantau lonjakan data di `Monitor Absensi`.</li>
-                            <li>3. Gunakan `Rekap Harian` untuk laporan cepat.</li>
+                            <li>3. Gunakan `Laporan Absensi` untuk rekap dan laporan cepat.</li>
                             <li>4. Masuk ke `Riwayat Absensi` hanya jika perlu audit atau koreksi.</li>
                         </ol>
                     </div>

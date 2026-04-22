@@ -17,7 +17,7 @@
             'items' => [
                 ['label' => 'Scan Absensi', 'href' => url('/absensi'), 'active' => request()->is('absensi'), 'icon' => 'scan'],
                 ['label' => 'Monitor Absensi', 'href' => url('/absensi/monitor'), 'active' => request()->is('absensi/monitor*'), 'icon' => 'pulse'],
-                ['label' => 'Rekap Harian', 'href' => url('/absensi/rekap'), 'active' => request()->is('absensi/rekap'), 'icon' => 'clipboard'],
+                ['label' => 'Laporan Absensi', 'href' => url('/absensi/rekap'), 'active' => request()->is('absensi/rekap'), 'icon' => 'clipboard'],
                 ['label' => 'Riwayat Absensi', 'href' => url('/absensi/riwayat'), 'active' => request()->is('absensi/riwayat*'), 'icon' => 'history'],
             ],
         ],

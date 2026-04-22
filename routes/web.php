@@ -17,6 +17,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/absensi/monitor', [AbsensiController::class,'monitor']);
     Route::get('/absensi/monitor/data', [AbsensiController::class,'monitorData']);
     Route::get('/absensi/rekap', [AbsensiController::class,'rekapSederhana']);
+    Route::get('/absensi/rekap/export', [AbsensiController::class,'exportRekap'])->name('absensi.rekap.export');
+    Route::get('/absensi/rekap/laporan-kelas', [AbsensiController::class,'classReportPdf'])->name('absensi.rekap.class-report');
     Route::get('/absensi/riwayat', [AbsensiController::class,'riwayat']);
     Route::get('/absensi/riwayat/export', [AbsensiController::class,'exportRiwayat']);
     Route::post('/absensi/mark-alpha', [AbsensiController::class,'markAlpha']);

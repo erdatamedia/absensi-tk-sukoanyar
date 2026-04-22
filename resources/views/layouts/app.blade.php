@@ -41,7 +41,7 @@
                 @endisset
 
                 <main class="overflow-x-hidden">
-                    {{ $slot }}
+                    {!! $slot ?? $__env->yieldContent('content') !!}
                 </main>
             </div>
         </div>

@@ -119,6 +119,220 @@ class AbsensiFlowTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_export_daily_rekap_csv_with_students_who_have_not_checked_in(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK A',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $hadir = Siswa::create([
+            'nis' => 'S-010',
+            'nama' => 'Budi',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'L',
+        ]);
+
+        $belumMasuk = Siswa::create([
+            'nis' => 'S-011',
+            'nama' => 'Siti',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $hadir->id,
+            'tanggal' => '2026-04-13',
+            'jam_masuk' => '07:05:00',
+            'status' => 'hadir',
+            'sumber' => 'scan_qr',
+            'terlambat' => false,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('absensi.rekap.export', [
+            'tanggal' => '2026-04-13',
+            'kelas_id' => $kelas->id,
+            'format' => 'csv',
+        ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $csv = $response->streamedContent();
+
+        $this->assertStringContainsString('Budi', $csv);
+        $this->assertStringContainsString('Siti', $csv);
+        $this->assertStringContainsString('Belum Masuk', $csv);
+    }
+
+    public function test_admin_can_export_daily_rekap_pdf(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK B',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-012',
+            'nama' => 'Alya',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-13',
+            'jam_masuk' => '07:15:00',
+            'status' => 'hadir',
+            'sumber' => 'scan_qr',
+            'terlambat' => false,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('absensi.rekap.export', [
+            'tanggal' => '2026-04-13',
+            'kelas_id' => $kelas->id,
+            'format' => 'pdf',
+        ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_admin_can_render_class_report_pdf_template(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK B',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-013',
+            'nama' => 'Nadia',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-13',
+            'jam_masuk' => '07:30:00',
+            'status' => 'hadir',
+            'sumber' => 'scan_qr',
+            'terlambat' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('absensi.rekap.class-report', [
+            'tanggal' => '2026-04-13',
+            'kelas_id' => $kelas->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_admin_can_view_weekly_rekap(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK C',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-014',
+            'nama' => 'Rafa',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'L',
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-21',
+            'jam_masuk' => '07:10:00',
+            'jam_pulang' => '11:40:00',
+            'status' => 'hadir',
+            'sumber' => 'scan_qr',
+            'terlambat' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/absensi/rekap?period=weekly&tanggal=2026-04-22&kelas_id=' . $kelas->id)
+            ->assertOk()
+            ->assertSee('Laporan Absensi')
+            ->assertSee('Mingguan')
+            ->assertSee('Rafa');
+    }
+
+    public function test_admin_can_view_monthly_rekap_with_presets_and_trend_labels(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK A',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-015',
+            'nama' => 'Luna',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-03',
+            'jam_masuk' => '07:20:00',
+            'status' => 'hadir',
+            'sumber' => 'scan_qr',
+            'terlambat' => false,
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-10',
+            'status' => 'izin',
+            'sumber' => 'manual',
+            'terlambat' => false,
+        ]);
+
+        Absensi::create([
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-16',
+            'status' => 'alpha',
+            'sumber' => 'auto_alpha',
+            'terlambat' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/absensi/rekap?preset=this_month&period=monthly&tanggal=2026-04-22&kelas_id=' . $kelas->id)
+            ->assertOk()
+            ->assertSee('Laporan Absensi')
+            ->assertSee('Bulanan')
+            ->assertSee('Bulan Ini')
+            ->assertSee('Tren Kehadiran')
+            ->assertSee('Breakdown Per Kelas')
+            ->assertSee('Hadir')
+            ->assertSee('Izin')
+            ->assertSee('Alpha');
+    }
+
     public function test_deleting_absensi_also_deletes_saved_dataset_files(): void
     {
         Storage::fake('public');
