@@ -7,6 +7,7 @@ use App\Models\AppSetting;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\User;
+use App\Support\Branding;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -334,7 +335,7 @@ class AbsensiFlowTest extends TestCase
             ->assertSee('Alpha');
     }
 
-    public function test_scan_masuk_marks_student_late_when_past_operational_start_setting(): void
+    public function test_scan_masuk_marks_student_late_when_past_operational_window(): void
     {
         Storage::fake('public');
         Carbon::setTestNow('2026-04-23 07:00:00');
@@ -343,6 +344,11 @@ class AbsensiFlowTest extends TestCase
             'key' => 'operational_start',
             'value' => '06:30',
         ]);
+        AppSetting::create([
+            'key' => 'operational_end',
+            'value' => '06:45',
+        ]);
+        Branding::forgetCache();
 
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -375,7 +381,7 @@ class AbsensiFlowTest extends TestCase
         ]);
     }
 
-    public function test_scan_masuk_is_not_late_when_before_operational_start_setting(): void
+    public function test_scan_masuk_marks_student_late_when_before_operational_window(): void
     {
         Storage::fake('public');
         Carbon::setTestNow('2026-04-23 06:20:00');
@@ -384,6 +390,7 @@ class AbsensiFlowTest extends TestCase
             'key' => 'operational_start',
             'value' => '06:30',
         ]);
+        Branding::forgetCache();
 
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -397,6 +404,52 @@ class AbsensiFlowTest extends TestCase
         $siswa = Siswa::create([
             'nis' => 'S-017',
             'nama' => 'Nisa',
+            'kelas_id' => $kelas->id,
+            'jenis_kelamin' => 'P',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson('/absensi/simpan', [
+                'siswa_id' => $siswa->id,
+                'foto' => $this->sampleBase64Png(),
+                'jenis' => 'masuk',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('absensi', [
+            'siswa_id' => $siswa->id,
+            'tanggal' => '2026-04-23',
+            'terlambat' => true,
+        ]);
+    }
+
+    public function test_scan_masuk_is_not_late_when_inside_operational_window(): void
+    {
+        Storage::fake('public');
+        Carbon::setTestNow('2026-04-23 07:00:00');
+
+        AppSetting::create([
+            'key' => 'operational_start',
+            'value' => '06:30',
+        ]);
+        AppSetting::create([
+            'key' => 'operational_end',
+            'value' => '12:00',
+        ]);
+        Branding::forgetCache();
+
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $kelas = Kelas::create([
+            'nama_kelas' => 'TK C',
+            'tahun_ajaran' => '2025/2026',
+        ]);
+
+        $siswa = Siswa::create([
+            'nis' => 'S-018',
+            'nama' => 'Farah',
             'kelas_id' => $kelas->id,
             'jenis_kelamin' => 'P',
         ]);

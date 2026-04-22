@@ -163,13 +163,19 @@
 
                     if (!video.videoWidth || !video.videoHeight) return null;
 
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    const maxDimension = 1280;
+                    const sourceWidth = video.videoWidth;
+                    const sourceHeight = video.videoHeight;
+                    const longestSide = Math.max(sourceWidth, sourceHeight);
+                    const scale = longestSide > maxDimension ? (maxDimension / longestSide) : 1;
+
+                    canvas.width = Math.round(sourceWidth * scale);
+                    canvas.height = Math.round(sourceHeight * scale);
 
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    return canvas.toDataURL("image/jpeg", 0.85);
+                    return canvas.toDataURL("image/jpeg", 0.72);
                 }
 
                 async function verifyQrToken(qrToken) {

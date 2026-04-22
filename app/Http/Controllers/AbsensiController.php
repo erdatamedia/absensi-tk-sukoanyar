@@ -69,21 +69,19 @@ class AbsensiController extends Controller
             $keterangan = null;
         }
         $overrideCutoff = (bool) ($validated['override_cutoff'] ?? false);
-        $cutoffMasuk = $this->getMasukCutoff();
-        $jamInput = Carbon::createFromFormat('H:i:s', $jam);
-        $jamCutoff = Carbon::createFromFormat('H:i', $cutoffMasuk);
-        $isTerlambat = $jamInput->gt($jamCutoff);
+        $timing = $this->evaluateMasukTiming($jam);
+        $isTerlambat = $timing['is_late'];
 
         $absensi = Absensi::where('siswa_id', $siswaId)
             ->whereDate('tanggal', $tanggal)
             ->first();
 
         if ($jenis === 'masuk') {
-            if (!$overrideCutoff && $jamInput->gt($jamCutoff)) {
+            if (!$overrideCutoff && $timing['is_late']) {
                 return redirect('/absensi/manual?' . http_build_query([
                     'tanggal' => $tanggal,
                     'kelas_id' => $validated['kelas_id'] ?? null,
-                ]))->with('error', "Jam masuk melewati batas {$cutoffMasuk}. Centang override jika memang perlu.");
+                ]))->with('error', "Jam masuk berada di luar jam operasional {$timing['start']} - {$timing['end']}. Centang override jika memang perlu.");
             }
 
             if ($absensi) {
@@ -924,6 +922,89 @@ class AbsensiController extends Controller
         return $cutoff;
     }
 
+    private function getOperationalEnd(): string
+    {
+        $end = Branding::operationalEnd();
+
+        if (!preg_match('/^\d{2}:\d{2}$/', $end)) {
+            return '12:00';
+        }
+
+        return $end;
+    }
+
+    private function evaluateMasukTiming(string $time): array
+    {
+        $start = $this->getMasukCutoff();
+        $end = $this->getOperationalEnd();
+        $timeValue = Carbon::createFromFormat('H:i:s', $time);
+        $startValue = Carbon::createFromFormat('H:i', $start);
+        $endValue = Carbon::createFromFormat('H:i', $end);
+
+        return [
+            'start' => $start,
+            'end' => $end,
+            'is_before_start' => $timeValue->lt($startValue),
+            'is_after_end' => $timeValue->gt($endValue),
+            'is_late' => $timeValue->lt($startValue) || $timeValue->gt($endValue),
+        ];
+    }
+
+    private function normalizeDatasetImage(string $imageBinary, array $imageInfo): ?string
+    {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return null;
+        }
+
+        $sourceImage = @imagecreatefromstring($imageBinary);
+
+        if ($sourceImage === false) {
+            return null;
+        }
+
+        $width = (int) ($imageInfo[0] ?? imagesx($sourceImage));
+        $height = (int) ($imageInfo[1] ?? imagesy($sourceImage));
+        $maxDimension = 1280;
+        $scale = max($width, $height) > $maxDimension
+            ? ($maxDimension / max($width, $height))
+            : 1;
+
+        $targetWidth = max(1, (int) round($width * $scale));
+        $targetHeight = max(1, (int) round($height * $scale));
+        $targetImage = imagecreatetruecolor($targetWidth, $targetHeight);
+
+        if ($targetImage === false) {
+            imagedestroy($sourceImage);
+
+            return null;
+        }
+
+        $background = imagecolorallocate($targetImage, 255, 255, 255);
+        imagefill($targetImage, 0, 0, $background);
+
+        imagecopyresampled(
+            $targetImage,
+            $sourceImage,
+            0,
+            0,
+            0,
+            0,
+            $targetWidth,
+            $targetHeight,
+            $width,
+            $height
+        );
+
+        ob_start();
+        imagejpeg($targetImage, null, 72);
+        $normalized = ob_get_clean();
+
+        imagedestroy($sourceImage);
+        imagedestroy($targetImage);
+
+        return $normalized !== false ? $normalized : null;
+    }
+
     private function buildDailyClassReports(
         string $startDate,
         string $endDate,
@@ -1329,8 +1410,13 @@ class AbsensiController extends Controller
             ], 422);
         }
 
-        $extension = (($imageInfo['mime'] ?? '') === 'image/png') ? 'png' : 'jpg';
-        $filename = 'siswa_' . $siswa->id . '_' . $jenis . '_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(6)) . '.' . $extension;
+        $normalizedImage = $this->normalizeDatasetImage($imageBinary, $imageInfo);
+
+        if ($normalizedImage !== null) {
+            $imageBinary = $normalizedImage;
+        }
+
+        $filename = 'siswa_' . $siswa->id . '_' . $jenis . '_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(6)) . '.jpg';
         $relativePath = 'dataset/' . $filename;
 
         try {
@@ -1355,10 +1441,8 @@ class AbsensiController extends Controller
 
         if ($jenis === 'masuk') {
             try {
-                $cutoffMasuk = $this->getMasukCutoff();
-                $jamNow = Carbon::createFromFormat('H:i:s', now()->toTimeString());
-                $jamCutoff = Carbon::createFromFormat('H:i', $cutoffMasuk);
-                $isTerlambat = $jamNow->gt($jamCutoff);
+                $timing = $this->evaluateMasukTiming(now()->toTimeString());
+                $isTerlambat = $timing['is_late'];
 
                 $createdAbsensi = Absensi::create([
                     'siswa_id'   => $siswa->id,
